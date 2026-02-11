@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react-swc'
 import path from 'node:path'
 import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -19,7 +20,7 @@ export default defineConfig({
       },
     },
   },
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -27,6 +28,7 @@ export default defineConfig({
       '@components': path.resolve(__dirname, 'src/components'),
       '@hooks': path.resolve(__dirname, 'src/hooks'),
       '@public': path.resolve(__dirname, 'public'),
+      '@pages': path.resolve(__dirname, 'src/pages'),
     },
   },
 })
