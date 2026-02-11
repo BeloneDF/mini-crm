@@ -1,3 +1,4 @@
+import { signOut } from '@/api/sign-out'
 import { DashboardIcon } from '@radix-ui/react-icons'
 import { useMutation } from '@tanstack/react-query'
 import {
@@ -11,7 +12,6 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from './ui/button'
-import { signOut } from '@/api/sign-out'
 
 export function SideBar() {
   const navigate = useNavigate()
@@ -21,7 +21,12 @@ export function SideBar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, route: '/' },
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: DashboardIcon,
+      route: '/dashboard',
+    },
     { id: 'lead', label: 'Leads', icon: AlignCenter, route: '/leads' },
     { id: 'contact', label: 'Contatos', icon: Package, route: '/contacts' },
   ]
@@ -68,10 +73,10 @@ export function SideBar() {
               {!collapsed && (
                 <div className="transition-opacity">
                   <h1 className="text-lg font-bold text-sidebar-foreground">
-                    Stock Hub
+                    CRM
                   </h1>
                   <p className="text-xs text-zinc-300">
-                    Armazenamento galax.ia
+                    Gerencie seus leads de forma eficiente
                   </p>
                 </div>
               )}
