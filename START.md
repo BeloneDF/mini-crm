@@ -30,10 +30,6 @@ As variáveis de ambiente devem ser exatamente as mesmas definidas no arquivo `.
 
 Basta copiar o `.env.example`, renomear para `.env` e ajustar os valores se necessário.
 
-# ⚡ Execução de Testes do server
-
-No diretório do server execute o comando `pnpm run test`
-
 
 # ⚡ Execução Automática (Recomendado)
 
@@ -110,6 +106,10 @@ ou
 pnpm run dev  
 
 ---
+
+# ⚡ Execução de Testes do server (Necessário instalar as bibliotecas)
+
+No diretório do server execute o comando `pnpm run test`
 
 # 🧩 Tecnologias Utilizadas
 
