@@ -1,4 +1,4 @@
-import type { LeadStatus } from '@/domain/entites/lead'
+import type { LeadStatus } from '@/domain/entities/lead'
 
 export interface CreateLeadDTO {
   name: string

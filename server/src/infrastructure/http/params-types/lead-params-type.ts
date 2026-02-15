@@ -1,4 +1,4 @@
-import { leadStatusValues } from '@/shared/schemas/lead-schema'
+import { leadStatusValues } from '@/infrastructure/http/schemas/lead-schema'
 import { z } from 'zod'
 
 const leadStatusAndAllState = ['all', ...leadStatusValues] as const
@@ -36,10 +36,4 @@ export const listLeadsQuerySchema = z.object({
         'Status deve ser um dos seguintes: novo, contactado, qualificado, convertido, perdido',
     })
     .optional(),
-})
-
-export const updateContactSchema = z.object({
-  name: z.string().min(1, { message: 'Name is required' }),
-  email: z.string().email({ message: 'Email is required' }),
-  phone: z.string().min(1, { message: 'Phone is required' }),
 })

@@ -1,6 +1,6 @@
 import type { GetDashboardUseCase } from '@/applications/use-cases/dashboard/get-dashboard'
+import { respondWithError } from '@/infrastructure/http/utils/error-response'
 import type { Context } from 'hono'
-import z from 'zod'
 
 export class DashboardController {
   constructor(private getDashboard: GetDashboardUseCase) {}
@@ -11,14 +11,7 @@ export class DashboardController {
 
       return c.json(dashboardData)
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return c.json(
-          { error: 'Invalid query params', details: z.treeifyError(error) },
-          400
-        )
-      }
-
-      return c.json({ error: 'Internal server error' }, 500)
+      return respondWithError(c, error)
     }
   }
 }

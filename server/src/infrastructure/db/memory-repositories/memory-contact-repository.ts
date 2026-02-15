@@ -1,13 +1,16 @@
 import type { ContactRepository } from '@/domain/repositories/contact-repository'
-import type { Contact } from '@/shared/utils/types'
+import type { Contact } from '@/domain/entities/contact'
 import { contacts, leads } from '../database'
-import type { ListContactParams } from '@/applications/use-cases/contact/list-contacts'
 import { randomUUID } from 'crypto'
-import type { CreateContactDTO } from '@/applications/dtos/create-contact-dto'
-import type { Lead } from '@/domain/entites/lead'
+import type { Lead } from '@/domain/entities/lead'
+import type {
+  CreateContactRepositoryInput,
+  ListContactsParams,
+  UpdateContactRepositoryInput,
+} from '@/domain/repositories/contact-repository'
 
 export class InMemoryContactRepository implements ContactRepository {
-  async fetchAll(params: ListContactParams) {
+  async fetchAll(params: ListContactsParams) {
     const {
       page = 0,
       pageSize = 10,
@@ -54,7 +57,7 @@ export class InMemoryContactRepository implements ContactRepository {
     }
   }
 
-  async create(contact: CreateContactDTO): Promise<Contact> {
+  async create(contact: CreateContactRepositoryInput): Promise<Contact> {
     const newContact: Contact = {
       id: randomUUID(),
       name: contact.name,
@@ -66,10 +69,13 @@ export class InMemoryContactRepository implements ContactRepository {
     return Promise.resolve(newContact)
   }
 
-  async updateContact(id: string, contact: CreateContactDTO): Promise<Contact> {
+  async updateContact(
+    id: string,
+    contact: UpdateContactRepositoryInput
+  ): Promise<Contact | null> {
     const index = contacts.findIndex(c => c.id === id)
     if (index === -1) {
-      throw new Error('Contact not found')
+      return Promise.resolve(null)
     }
     contacts[index] = { ...contacts[index], ...contact }
     return Promise.resolve(contacts[index])
@@ -77,12 +83,7 @@ export class InMemoryContactRepository implements ContactRepository {
 
   async findContactById(id: string): Promise<Contact | null> {
     const contact = contacts.find(c => c.id === id)
-
-    if (!contact) {
-      throw new Error('Contact not found')
-    }
-
-    return Promise.resolve(contact || null)
+    return Promise.resolve(contact ?? null)
   }
 
   async findByNameAndEmail(
@@ -90,12 +91,7 @@ export class InMemoryContactRepository implements ContactRepository {
     email: string
   ): Promise<Contact | null> {
     const contact = contacts.find(c => c.name === name && c.email === email)
-
-    if (contact) {
-      throw new Error('Contact already exists')
-    }
-
-    return Promise.resolve(null)
+    return Promise.resolve(contact ?? null)
   }
 
   async findLeadsByContactId(contactId: string): Promise<Lead[]> {
@@ -115,11 +111,11 @@ export class InMemoryContactRepository implements ContactRepository {
     }))
   }
 
-  async deleteContact(id: string): Promise<{ message: string }> {
+  async deleteContact(id: string): Promise<{ message: string } | null> {
     const index = contacts.findIndex(c => c.id === id)
 
     if (index === -1) {
-      throw new Error('Contact not found')
+      return Promise.resolve(null)
     }
 
     if (leads.some(lead => lead.contactId === id)) {

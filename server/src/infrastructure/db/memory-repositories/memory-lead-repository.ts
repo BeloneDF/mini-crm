@@ -1,11 +1,14 @@
-import type { CreateLeadDTO } from '@/applications/dtos/create-lead-dto'
-import type { Lead } from '@/domain/entites/lead'
+import type { Lead } from '@/domain/entities/lead'
 import type { LeadRepository } from '@/domain/repositories/lead-repository'
 import { leads } from '../database'
-import type { ListLeadsParams } from '@/applications/use-cases/lead/list-leads'
+import type {
+  CreateLeadRepositoryInput,
+  ListLeadsParams,
+  UpdateLeadRepositoryInput,
+} from '@/domain/repositories/lead-repository'
 
 export class InMemoryLeadRepository implements LeadRepository {
-  create(data: CreateLeadDTO): Promise<Lead> {
+  create(data: CreateLeadRepositoryInput): Promise<Lead> {
     const newLead: Lead = {
       id: crypto.randomUUID(),
       contactId: data.contactId,
@@ -76,10 +79,10 @@ export class InMemoryLeadRepository implements LeadRepository {
     return Promise.resolve(lead || null)
   }
 
-  updateLeadById(id: string, data: Partial<Lead>): Promise<Lead> {
+  updateLeadById(id: string, data: UpdateLeadRepositoryInput): Promise<Lead | null> {
     const leadIndex = leads.findIndex(lead => lead.id === id)
     if (leadIndex === -1) {
-      throw new Error('Lead not found')
+      return Promise.resolve(null)
     }
 
     const updatedLead = { ...leads[leadIndex], ...data }
@@ -91,10 +94,10 @@ export class InMemoryLeadRepository implements LeadRepository {
     return Promise.resolve(leads)
   }
 
-  deleteLeadById(id: string): Promise<{ message: string }> {
+  deleteLeadById(id: string): Promise<{ message: string } | null> {
     const leadIndex = leads.findIndex(lead => lead.id === id)
     if (leadIndex === -1) {
-      throw new Error('Lead not found')
+      return Promise.resolve(null)
     }
 
     leads.splice(leadIndex, 1)

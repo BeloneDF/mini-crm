@@ -1,10 +1,10 @@
-import type { User } from '@/domain/entites/user'
+import type { User } from '@/domain/entities/user'
 import { InMemoryContactRepository } from '@/infrastructure/db/memory-repositories/memory-contact-repository'
 import { InMemoryUserRepository } from '@/infrastructure/db/memory-repositories/memory-user-repository'
 import { faker } from '@faker-js/faker'
 import { hash } from 'bcryptjs'
-import type { Contact } from './domain/entites/contact'
-import type { LeadStatus } from './domain/entites/lead'
+import type { Contact } from './domain/entities/contact'
+import type { LeadStatus } from './domain/entities/lead'
 import { InMemoryLeadRepository } from './infrastructure/db/memory-repositories/memory-lead-repository'
 
 export async function createUser() {

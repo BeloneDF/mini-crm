@@ -1,13 +1,22 @@
 import type { AuthUseCase } from '@/applications/use-cases/auth/auth'
+import { UnauthorizedError } from '@/domain/errors/app-errors'
+import { respondWithError } from '@/infrastructure/http/utils/error-response'
 import type { Context } from 'hono'
 import { getCookie, setCookie } from 'hono/cookie'
+import { z } from 'zod'
+
+const loginSchema = z.object({
+  email: z.email('Invalid email'),
+  password: z.string().min(1, 'Password is required'),
+})
 
 export class AuthController {
   constructor(private authUseCase: AuthUseCase) {}
 
   async login(c: Context) {
     try {
-      const { email, password } = await c.req.json()
+      const body = await c.req.json()
+      const { email, password } = loginSchema.parse(body)
 
       const result = await this.authUseCase.execute(email, password)
 
@@ -20,40 +29,48 @@ export class AuthController {
         })
       }
 
-      return c.json('Login successful', 200)
-    } catch {
-      return c.json({ error: 'Invalid credentials' }, 401)
+      return c.json({ message: 'Login successful' }, 200)
+    } catch (error) {
+      return respondWithError(c, error)
     }
   }
 
   async checkAuth(c: Context) {
-    const token = this.extractToken(c)
+    try {
+      const token = this.extractToken(c)
 
-    if (!token) {
-      return c.json({ error: 'Unauthorized' }, 401)
+      if (!token) {
+        throw new UnauthorizedError()
+      }
+
+      const user = await this.authUseCase.checkAuth(token)
+
+      if (!user) {
+        throw new UnauthorizedError('Invalid token')
+      }
+
+      const { password, id, createdAt, ...userWithoutIdAndPassword } = user
+
+      return c.json(userWithoutIdAndPassword, 200)
+    } catch (error) {
+      return respondWithError(c, error)
     }
-
-    const user = await this.authUseCase.checkAuth(token)
-
-    if (!user) {
-      return c.json({ error: 'Invalid token' }, 401)
-    }
-
-    const { password, id, createdAt, ...userWithoutIdAndPassword } = user
-
-    return c.json(userWithoutIdAndPassword, 200)
   }
 
   async logout(c: Context) {
-    const token = this.extractToken(c)
+    try {
+      const token = this.extractToken(c)
 
-    if (!token) {
-      return c.json({ error: 'Token required' }, 400)
+      if (!token) {
+        throw new UnauthorizedError()
+      }
+
+      await this.authUseCase.logout(token)
+
+      return c.json({ message: 'Logged out successfully' }, 200)
+    } catch (error) {
+      return respondWithError(c, error)
     }
-
-    await this.authUseCase.logout(token)
-
-    return c.json({ message: 'Logged out successfully' }, 200)
   }
 
   private extractToken(c: Context) {

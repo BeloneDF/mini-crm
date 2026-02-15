@@ -1,4 +1,4 @@
-import type { User } from '../entites/user.js'
+import type { User } from '../entities/user.js'
 
 export interface AuthRepository {
   login(email: string, password: string): Promise<{ user: User; token: string }>

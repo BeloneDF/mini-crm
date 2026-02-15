@@ -1,4 +1,4 @@
-import type { Contact } from '@/domain/entites/contact'
+import type { Contact } from '@/domain/entities/contact'
 import type { ContactRepository } from '@/domain/repositories/contact-repository'
 
 export class FetchAllContactsUseCase {

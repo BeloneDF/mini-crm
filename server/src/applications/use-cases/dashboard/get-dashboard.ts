@@ -1,5 +1,5 @@
 import type { DashboardRepository } from '@/domain/repositories/dashboard-repository'
-import type { Dashboard } from '@/shared/utils/types'
+import type { Dashboard } from '@/domain/entities/dashboard'
 
 export class GetDashboardUseCase {
   constructor(private dashboardRepository: DashboardRepository) {}

@@ -1,8 +1,8 @@
-import type { LeadStatus } from '@/domain/entites/lead'
+import type { LeadStatus } from '@/domain/entities/lead'
+import type { Dashboard } from '@/domain/entities/dashboard'
 import type { ContactRepository } from '@/domain/repositories/contact-repository'
 import type { DashboardRepository } from '@/domain/repositories/dashboard-repository'
 import type { LeadRepository } from '@/domain/repositories/lead-repository'
-import type { Dashboard } from '@/shared/utils/types'
 
 export class InMemoryDashboardRepository implements DashboardRepository {
   constructor(

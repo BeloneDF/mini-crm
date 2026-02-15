@@ -1,4 +1,5 @@
-import type { Lead } from '@/domain/entites/lead'
+import type { Lead } from '@/domain/entities/lead'
+import { NotFoundError } from '@/domain/errors/app-errors'
 import type { LeadRepository } from '@/domain/repositories/lead-repository'
 
 export interface FindLeadByIdUseCaseRequest {
@@ -8,7 +9,13 @@ export interface FindLeadByIdUseCaseRequest {
 export class FindLeadByIdUseCase {
   constructor(private leadRepository: LeadRepository) {}
 
-  async execute(request: FindLeadByIdUseCaseRequest): Promise<Lead | null> {
-    return this.leadRepository.findLeadById(request.id)
+  async execute(request: FindLeadByIdUseCaseRequest): Promise<Lead> {
+    const lead = await this.leadRepository.findLeadById(request.id)
+
+    if (!lead) {
+      throw new NotFoundError('Lead not found')
+    }
+
+    return lead
   }
 }

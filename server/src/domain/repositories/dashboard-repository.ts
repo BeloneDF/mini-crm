@@ -1,4 +1,4 @@
-import type { Dashboard } from '@/shared/utils/types.js'
+import type { Dashboard } from '@/domain/entities/dashboard.js'
 
 export interface DashboardRepository {
   fetchAll(): Promise<Dashboard>

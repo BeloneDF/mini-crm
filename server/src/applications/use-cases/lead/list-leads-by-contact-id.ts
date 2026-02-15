@@ -1,5 +1,6 @@
-import type { Contact } from '@/domain/entites/contact'
-import type { Lead } from '@/domain/entites/lead'
+import type { Contact } from '@/domain/entities/contact'
+import type { Lead } from '@/domain/entities/lead'
+import { NotFoundError } from '@/domain/errors/app-errors'
 import type { ContactRepository } from '@/domain/repositories/contact-repository'
 
 export interface FindLeadsByContactIdUseCaseRequest {
@@ -7,7 +8,7 @@ export interface FindLeadsByContactIdUseCaseRequest {
 }
 
 interface FindLeadsByContactIdUseCaseResponse {
-  contact: Contact | null
+  contact: Contact
   leads: Lead[]
 }
 
@@ -16,17 +17,17 @@ export class FindLeadsByContactIdUseCase {
 
   async execute(
     request: FindLeadsByContactIdUseCaseRequest
-  ): Promise<FindLeadsByContactIdUseCaseResponse | null> {
-    const existingContact = this.contactRepository.findContactById(
+  ): Promise<FindLeadsByContactIdUseCaseResponse> {
+    const existingContact = await this.contactRepository.findContactById(
       request.contactId
     )
 
     if (!existingContact) {
-      return null
+      throw new NotFoundError('Contact not found')
     }
 
     const leadsAndContact = {
-      contact: await existingContact,
+      contact: existingContact,
       leads: await this.contactRepository.findLeadsByContactId(
         request.contactId
       ),

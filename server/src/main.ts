@@ -8,12 +8,17 @@ import contactRoutes from './infrastructure/http/routes/contact-routes.js'
 import userRoutes from './infrastructure/http/routes/user-routes.js'
 import leadRoutes from './infrastructure/http/routes/lead-routes.js'
 import dashboardRoutes from './infrastructure/http/routes/dashboard-routes.js'
+import { normalizeError } from './infrastructure/http/utils/error-response.js'
 
 const isDevelopment = process.env.NODE_ENV === 'development'
 
 const app = new Hono()
 
 app.use('*', cors(corsOptions))
+app.onError((error, c) => {
+  const { status, body } = normalizeError(error)
+  return c.json(body, status)
+})
 
 app.route('/user', userRoutes)
 app.route('/auth', authRoutes)

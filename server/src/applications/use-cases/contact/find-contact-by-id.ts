@@ -1,4 +1,5 @@
-import type { Contact } from '@/domain/entites/contact'
+import type { Contact } from '@/domain/entities/contact'
+import { NotFoundError } from '@/domain/errors/app-errors'
 import type { ContactRepository } from '@/domain/repositories/contact-repository'
 
 export interface FindContactByIdUseCaseRequest {
@@ -10,7 +11,13 @@ export class FindContactByIdUseCase {
 
   async execute(
     request: FindContactByIdUseCaseRequest
-  ): Promise<Contact | null> {
-    return this.contactRepository.findContactById(request.id)
+  ): Promise<Contact> {
+    const contact = await this.contactRepository.findContactById(request.id)
+
+    if (!contact) {
+      throw new NotFoundError('Contact not found')
+    }
+
+    return contact
   }
 }

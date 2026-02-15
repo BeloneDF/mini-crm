@@ -1,6 +1,6 @@
 import type { CreateContactDTO } from '@/applications/dtos/create-contact-dto'
-import type { Contact } from '@/domain/entites/contact'
-import { AppError } from '@/domain/errors/app-errors'
+import type { Contact } from '@/domain/entities/contact'
+import { ConflictError } from '@/domain/errors/app-errors'
 import type { ContactRepository } from '@/domain/repositories/contact-repository'
 
 export class CreateContactUseCase {
@@ -13,7 +13,7 @@ export class CreateContactUseCase {
     )
 
     if (existingContact) {
-      throw new AppError('Contact already registered', 400)
+      throw new ConflictError('Contact already registered')
     }
 
     return this.contactRepository.create(data)

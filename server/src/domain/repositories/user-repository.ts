@@ -1,11 +1,9 @@
-import type { User } from '../entites/user.js'
-import type { CreateUserDTO } from '@/applications/dtos/create-user-dto.js'
+import type { User } from '../entities/user.js'
+
+export type CreateUserRepositoryInput = Pick<User, 'name' | 'email' | 'password'>
+export type PublicUserData = Omit<User, 'password' | 'id' | 'createdAt'>
 
 export interface UserRepository {
-  findByEmail(
-    email: string
-  ): Promise<Omit<User, 'password' | 'id' | 'createdAt'> | null>
-  create(
-    user: CreateUserDTO
-  ): Promise<Omit<User, 'password' | 'id' | 'createdAt'>>
+  findByEmail(email: string): Promise<User | null>
+  create(user: CreateUserRepositoryInput): Promise<PublicUserData>
 }

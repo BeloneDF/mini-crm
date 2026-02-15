@@ -1,8 +1,7 @@
 import type { Context } from 'hono'
-import type { ContentfulStatusCode } from 'hono/utils/http-status'
-import { createUserSchema } from '@/shared/schemas/user-schema'
+import { createUserSchema } from '@/infrastructure/http/schemas/user-schema'
 import { CreateUserUseCase } from '@/applications/use-cases/user/create-user'
-import { AppError } from '@/domain/errors/app-errors'
+import { respondWithError } from '@/infrastructure/http/utils/error-response'
 
 export class UserController {
   constructor(private createUser: CreateUserUseCase) {}
@@ -10,28 +9,17 @@ export class UserController {
     try {
       const body = await c.req.json()
 
-      const parsed = createUserSchema.safeParse(body)
-
-      if (!parsed.success) {
-        return c.json({ error: parsed.error.format() }, 400)
-      }
+      const parsed = createUserSchema.parse(body)
 
       const user = await this.createUser.execute({
-        email: parsed.data.email,
-        password: parsed.data.password,
-        name: parsed.data.name,
+        email: parsed.email,
+        password: parsed.password,
+        name: parsed.name,
       })
 
       return c.json(user, 201)
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json(
-          { error: error.message },
-          error.statusCode as ContentfulStatusCode
-        )
-      }
-
-      return c.json({ error: 'Internal server error' }, 500)
+      return respondWithError(c, error)
     }
   }
 }
