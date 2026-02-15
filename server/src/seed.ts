@@ -68,9 +68,31 @@ export async function seed() {
 }
 
 seed()
-  .then(() => {
-    console.log('Database seeding completed successfully.')
+  .then(async () => {
+
+    console.log('\n==========================================')
+    console.log('🌱 DATABASE SEED FINALIZADO COM SUCESSO')
+    console.log('==========================================\n')
+
+    console.log('📊 Resumo das entidades criadas:\n')
+    console.table([
+      { Entidade: 'Usuário', Total: 1 },
+      { Entidade: 'Contatos', Total: 20 },
+      { Entidade: 'Leads', Total: 'Dinâmico (1–10 por contato)' },
+    ])
+
+    console.log('\n🔐 Credenciais do usuário padrão:\n')
+    console.table([
+      { Email: 'admin@admin.com', Senha: 'Admin@123!' },
+    ])
+
+    console.log('\n🚀 Ambiente pronto para uso!\n')
+    console.info('Para executar sem seed, use: "npm run dev" no diretório raiz do server.')
   })
   .catch(error => {
-    console.error('Error during database seeding:', error)
+    console.error('\n❌ ERRO DURANTE O SEED')
+    console.error('------------------------------------------')
+    console.error(error)
+    console.error('------------------------------------------\n')
   })
+
