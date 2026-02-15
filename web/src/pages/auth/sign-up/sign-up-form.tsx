@@ -2,10 +2,11 @@ import { signUp } from '@/api/auth/sign-up'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getApiErrorMessage } from '@/lib/get-api-error-message'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Loader2, Target, Eye, EyeOff } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -13,10 +14,15 @@ import { z } from 'zod'
 
 const registerSchema = z
   .object({
-    name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres.').max(120),
-    email: z.email('Digite um e-mail valido.'),
+    name: z
+      .string()
+      .min(3, 'Nome deve ter pelo menos 3 caracteres.')
+      .max(120, 'Nome muito longo.'),
+    email: z.email('Digite um e-mail válido.'),
     password: z
       .string()
+      .min(1, 'Senha obrigatória.')
+      .max(128, 'Senha muito longa.')
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,128}$/,
         'A senha deve ter 8+ caracteres, maiúscula, minúscula, número e símbolo.'
@@ -25,22 +31,26 @@ const registerSchema = z
   })
   .refine(data => data.password === data.confirmPassword, {
     message: 'As senhas não coincidem.',
+    path: ['confirmPassword'],
   })
 
 type RegisterForm = z.infer<typeof registerSchema>
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const navigate = useNavigate()
 
   const { mutate: signUpMutate, isPending } = useMutation({
     mutationFn: signUp,
     onSuccess: () => {
+      setSubmitError(null)
       toast.success('Conta criada com sucesso!')
       navigate('/dashboard')
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Erro ao criar conta.'
+    onError: error => {
+      const message = getApiErrorMessage(error, 'Erro ao criar conta.')
+      setSubmitError(message)
       toast.error(message)
     },
   })
@@ -51,12 +61,13 @@ export default function SignUpForm() {
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '' },
+    defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   })
 
-  const onSubmit = useCallback((data: RegisterForm) => {
+  function onSubmit(data: RegisterForm) {
+    setSubmitError(null)
     signUpMutate(data)
-  }, [])
+  }
 
   return (
     <div className="flex w-full flex-col justify-center px-6 py-12 lg:px-16 xl:px-24">
@@ -85,6 +96,8 @@ export default function SignUpForm() {
               id="name"
               placeholder="Seu nome"
               className="h-12 rounded-xl"
+              aria-invalid={!!errors.name}
+              disabled={isPending}
               {...register('name')}
             />
             {errors.name && (
@@ -99,6 +112,8 @@ export default function SignUpForm() {
               type="email"
               placeholder="seu@email.com"
               className="h-12 rounded-xl"
+              aria-invalid={!!errors.email}
+              disabled={isPending}
               {...register('email')}
             />
             {errors.email && (
@@ -114,12 +129,15 @@ export default function SignUpForm() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Crie uma senha forte"
                 className="h-12 rounded-xl pr-12"
+                aria-invalid={!!errors.password}
+                disabled={isPending}
                 {...register('password')}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                disabled={isPending}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -143,12 +161,15 @@ export default function SignUpForm() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Confirme sua senha"
                 className="h-12 rounded-xl pr-12"
+                aria-invalid={!!errors.confirmPassword}
+                disabled={isPending}
                 {...register('confirmPassword')}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                disabled={isPending}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -164,9 +185,16 @@ export default function SignUpForm() {
             )}
           </div>
 
+          {submitError && (
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {submitError}
+            </p>
+          )}
+
           <Button
             type="submit"
             disabled={isPending}
+            aria-busy={isPending}
             className="h-12 rounded-xl"
           >
             {isPending ? (

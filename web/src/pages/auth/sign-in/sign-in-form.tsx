@@ -2,42 +2,45 @@ import { signIn } from '@/api/auth/sign-in'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getApiErrorMessage } from '@/lib/get-api-error-message'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Loader2, Target, Eye, EyeOff } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 const passwordFormSchema = z.object({
-  email: z.email('Digite um e-mail valido.'),
+  email: z.email('Digite um e-mail válido.'),
   password: z
     .string()
+    .min(1, 'Senha obrigatória.')
+    .max(128, 'Senha muito longa.')
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,128}$/,
       'A senha deve ter 8+ caracteres, maiúscula, minúscula, número e símbolo.'
-    )
-    .min(1, 'Senha obrigatoria.')
-    .max(128, 'Senha muito longa.'),
+    ),
 })
 
 type LoginForm = z.infer<typeof passwordFormSchema>
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const navigate = useNavigate()
 
   const { mutate: signInMutate, isPending: isSigningIn } = useMutation({
     mutationFn: signIn,
     onSuccess: () => {
+      setSubmitError(null)
       toast.success('Login bem-sucedido!')
       navigate('/dashboard')
     },
-    onError: (error: any) => {
-      const message =
-        error?.response?.data?.message || 'Ocorreu um erro ao entrar.'
+    onError: error => {
+      const message = getApiErrorMessage(error, 'Ocorreu um erro ao entrar.')
+      setSubmitError(message)
       toast.error(message)
     },
   })
@@ -51,9 +54,10 @@ export default function SignInForm() {
     defaultValues: { email: '', password: '' },
   })
 
-  const onSubmit = useCallback(async (data: LoginForm) => {
+  function onSubmit(data: LoginForm) {
+    setSubmitError(null)
     signInMutate(data)
-  }, [])
+  }
 
   return (
     <div className="flex w-full flex-col justify-center px-6 py-12 lg:px-16 xl:px-24">
@@ -101,6 +105,8 @@ export default function SignInForm() {
               type="email"
               placeholder="seu@email.com"
               className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground transition-all duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+              aria-invalid={!!errors.email}
+              disabled={isSigningIn}
               {...register('email')}
             />
             {errors.email && (
@@ -134,6 +140,8 @@ export default function SignInForm() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Digite sua senha"
                 className="h-12 rounded-xl border-border bg-card pr-12 px-4 text-sm text-foreground transition-all duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                aria-invalid={!!errors.password}
+                disabled={isSigningIn}
                 {...register('password')}
               />
               <button
@@ -141,6 +149,7 @@ export default function SignInForm() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                 aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                disabled={isSigningIn}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -159,9 +168,16 @@ export default function SignInForm() {
             )}
           </div>
 
+          {submitError && (
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {submitError}
+            </p>
+          )}
+
           <Button
             type="submit"
             disabled={isSigningIn}
+            aria-busy={isSigningIn}
             className="mt-2 h-12 rounded-xl text-sm font-semibold tracking-wide transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
           >
             {isSigningIn ? (

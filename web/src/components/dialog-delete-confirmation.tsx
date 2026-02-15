@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
+import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { getApiErrorMessage } from '@/lib/get-api-error-message'
 import {
   Dialog,
   DialogContent,
@@ -31,19 +33,36 @@ export default function DialogDeleteConfirmation({
   description,
 }: DialogDeleteConfirmationProps) {
   const queryClient = useQueryClient()
+  const [mutationError, setMutationError] = React.useState<string | null>(null)
 
   const { mutateAsync, isPending } = useMutation<unknown, unknown, string>({
     mutationFn: mutate,
     onSuccess: () => {
+      setMutationError(null)
       invalidateQueries.forEach(queryKey => {
         queryClient.invalidateQueries({ queryKey: [queryKey] })
       })
       setOpen(false)
     },
+    onError: error => {
+      setMutationError(
+        getApiErrorMessage(error, 'Não foi possível excluir o registro.')
+      )
+    },
   })
 
+  React.useEffect(() => {
+    if (open) {
+      setMutationError(null)
+    }
+  }, [open])
+
   async function handleDelete() {
-    await mutateAsync(idTodelete)
+    try {
+      await mutateAsync(idTodelete)
+    } catch {
+      // Error state is handled by mutation onError.
+    }
   }
 
   return (
@@ -53,6 +72,12 @@ export default function DialogDeleteConfirmation({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+
+        {mutationError && (
+          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {mutationError}
+          </p>
+        )}
 
         <DialogFooter>
           <Button
@@ -67,7 +92,9 @@ export default function DialogDeleteConfirmation({
             variant="destructive"
             onClick={handleDelete}
             disabled={isPending}
+            aria-busy={isPending}
           >
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isPending ? 'Excluindo...' : 'Confirmar exclusão'}
           </Button>
         </DialogFooter>

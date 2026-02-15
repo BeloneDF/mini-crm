@@ -37,11 +37,13 @@ import {
 } from '@/components/ui/select'
 import { useDebounce } from '@/hooks/use-debouce'
 import {
+  AlertCircle,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
   Loader2,
+  RefreshCw,
   Search,
   Settings2,
 } from 'lucide-react'
@@ -57,6 +59,9 @@ interface DataTableProps<TData, TValue> {
   globalFilter?: string
   onGlobalFilterChange?: (filter: string) => void
   isLoading?: boolean
+  isRefreshing?: boolean
+  errorMessage?: string
+  onRetry?: () => void
   searchPlaceholder?: string
   searchColumn?: string
   manualPagination?: boolean
@@ -77,6 +82,9 @@ export function DataTable<TData, TValue>({
   globalFilter,
   onGlobalFilterChange,
   isLoading = false,
+  isRefreshing = false,
+  errorMessage,
+  onRetry,
   searchPlaceholder = 'Buscar...',
   searchColumn,
   manualPagination = false,
@@ -129,7 +137,7 @@ export function DataTable<TData, TValue>({
     manualFiltering,
   })
 
-  const [inputValue, setInputValue] = useState('')
+  const [inputValue, setInputValue] = useState(globalFilter ?? '')
   const debouncedValue = useDebounce(inputValue, 500)
 
   useEffect(() => {
@@ -139,6 +147,7 @@ export function DataTable<TData, TValue>({
       onGlobalFilterChange(debouncedValue)
     }
   }, [debouncedValue])
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
@@ -179,6 +188,13 @@ export function DataTable<TData, TValue>({
         </DropdownMenu>
       </div>
 
+      {isRefreshing && !isLoading && (
+        <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+          Atualizando dados...
+        </div>
+      )}
+
       <div className="max-h-[330px] md:max-h-[650px] overflow-y-auto border rounded-md">
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10">
@@ -209,6 +225,22 @@ export function DataTable<TData, TValue>({
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin" />
                     <span>Carregando...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : errorMessage ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-40">
+                  <div className="flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="flex items-center gap-2 text-destructive">
+                      <AlertCircle className="h-5 w-5" />
+                      <span className="text-sm">{errorMessage}</span>
+                    </div>
+                    {onRetry && (
+                      <Button type="button" variant="outline" onClick={onRetry}>
+                        Tentar novamente
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

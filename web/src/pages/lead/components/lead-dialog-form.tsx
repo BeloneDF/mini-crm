@@ -27,6 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { getApiErrorMessage } from '@/lib/get-api-error-message'
 import { queryClient } from '@/lib/react-query'
 import { cn } from '@/lib/utils'
 import type { Lead, LeadStatus } from '@/utils/types'
@@ -58,12 +59,17 @@ export default function LeadDialogForm({
   leadId,
 }: LeadDialogFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
 
   const [openContactSelect, setOpenContactSelect] = useState(false)
 
-  const { data: allContacts, isLoading: isAllContactsLoading } = useQuery({
-    queryKey: ['contacts', open],
+  const {
+    data: allContacts,
+    isLoading: isAllContactsLoading,
+    isError: isAllContactsError,
+    error: allContactsError,
+    refetch: refetchAllContacts,
+  } = useQuery({
+    queryKey: ['all-contacts'],
     queryFn: () => fetchAllContacts(),
     enabled: !!open,
   })
@@ -72,7 +78,7 @@ export default function LeadDialogForm({
     ? 'Lead atualizado com sucesso!'
     : 'Lead criado com sucesso!'
 
-  const { mutateAsync: createLeadMutation } = useMutation({
+  const createLeadMutation = useMutation({
     mutationFn: createLead,
     onSuccess: () => {
       toast.success(toastSuccessMessage)
@@ -80,11 +86,11 @@ export default function LeadDialogForm({
       onOpenChange(false)
     },
     onError: err => {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar Lead')
+      setFormError(getApiErrorMessage(err, 'Erro ao salvar lead.'))
     },
   })
 
-  const { mutateAsync: updateLeadMutation } = useMutation({
+  const updateLeadMutation = useMutation({
     mutationFn: async (data: LeadFormData) => {
       if (!leadId) {
         throw new Error('Lead não encontrado')
@@ -98,11 +104,17 @@ export default function LeadDialogForm({
       onOpenChange(false)
     },
     onError: err => {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar')
+      setFormError(getApiErrorMessage(err, 'Erro ao salvar lead.'))
     },
   })
 
-  const { data: leadData, isLoading: isLeadLoading } = useQuery<Lead>({
+  const {
+    data: leadData,
+    isLoading: isLeadLoading,
+    isError: isLeadError,
+    error: leadError,
+    refetch: refetchLead,
+  } = useQuery<Lead>({
     queryKey: ['lead', leadId],
     queryFn: () => findLeadById({ id: leadId! }),
     enabled: !!leadId && open,
@@ -148,23 +160,20 @@ export default function LeadDialogForm({
   }, [leadData, open, reset])
 
   const onSubmit = async (data: LeadFormData) => {
-    setLoading(true)
     setFormError(null)
 
     try {
       if (leadId) {
-        await updateLeadMutation(data)
+        await updateLeadMutation.mutateAsync(data)
       } else {
-        await createLeadMutation(data)
+        await createLeadMutation.mutateAsync(data)
       }
-
-      onOpenChange(false)
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar')
-    } finally {
-      setLoading(false)
+    } catch {
+      // Error state is set by mutation onError handlers.
     }
   }
+
+  const isSubmitting = createLeadMutation.isPending || updateLeadMutation.isPending
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -179,7 +188,25 @@ export default function LeadDialogForm({
         </DialogHeader>
 
         {isLeadLoading && <LeadFormSkeleton />}
-        {!isLeadLoading && (
+        {isLeadError && (
+          <div className="space-y-3 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            <p>
+              {getApiErrorMessage(
+                leadError,
+                'Não foi possível carregar os dados do lead.'
+              )}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => refetchLead()}
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+        {!isLeadLoading && !isLeadError && (
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="flex flex-col gap-4"
@@ -191,6 +218,7 @@ export default function LeadDialogForm({
                 placeholder="Ex: Ana Silva"
                 {...register('name')}
                 aria-invalid={!!errors.name}
+                disabled={isSubmitting}
               />
               {errors.name && (
                 <p className="text-xs text-destructive">
@@ -206,6 +234,7 @@ export default function LeadDialogForm({
                 placeholder="Ex: Empresa X"
                 {...register('company')}
                 aria-invalid={!!errors.company}
+                disabled={isSubmitting}
               />
               {errors.company && (
                 <p className="text-xs text-destructive">
@@ -220,6 +249,7 @@ export default function LeadDialogForm({
                 id="lead-status"
                 {...register('status')}
                 className="rounded-md border border-input bg-transparent px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isSubmitting}
               >
                 {LEAD_STATUS_OPTIONS.map(status => (
                   <option key={status} value={status}>
@@ -245,8 +275,9 @@ export default function LeadDialogForm({
                   <Button
                     variant="outline"
                     role="combobox"
-                    aria-expanded={open}
+                    aria-expanded={openContactSelect}
                     className="justify-between"
+                    disabled={isSubmitting}
                   >
                     {selectedContact
                       ? `${selectedContact.name} (${selectedContact.email})`
@@ -256,55 +287,76 @@ export default function LeadDialogForm({
                   </Button>
                 </PopoverTrigger>
 
-                <PopoverContent className="p-0 w-full " align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar por nome ou email..." />
-
-                    <CommandEmpty>
-                      {isAllContactsLoading
-                        ? 'Carregando contatos...'
-                        : 'Nenhum contato encontrado.'}
-                    </CommandEmpty>
-
-                    <CommandGroup className="max-h-64 overflow-y-auto">
-                      <CommandItem
-                        value=""
-                        onSelect={() => {
-                          setValue('contactId', '')
-                          setOpenContactSelect(false)
-                        }}
+                <PopoverContent className="w-full p-0" align="start">
+                  {isAllContactsError ? (
+                    <div className="space-y-2 p-3 text-sm">
+                      <p className="text-destructive">
+                        {getApiErrorMessage(
+                          allContactsError,
+                          'Não foi possível carregar os contatos.'
+                        )}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => refetchAllContacts()}
                       >
-                        Nenhum contato associado
-                      </CommandItem>
+                        Tentar novamente
+                      </Button>
+                    </div>
+                  ) : (
+                    <Command>
+                      <CommandInput placeholder="Buscar por nome ou email..." />
 
-                      {allContacts?.map(contact => (
+                      <CommandEmpty>
+                        {isAllContactsLoading
+                          ? 'Carregando contatos...'
+                          : 'Nenhum contato encontrado.'}
+                      </CommandEmpty>
+
+                      <CommandGroup className="max-h-64 overflow-y-auto">
                         <CommandItem
-                          key={contact.id}
-                          value={`${contact.name} ${contact.email}`}
+                          value="none"
                           onSelect={() => {
-                            setValue('contactId', contact.id)
+                            setValue('contactId', '', { shouldValidate: true })
                             setOpenContactSelect(false)
                           }}
                         >
-                          <div className="flex flex-col">
-                            <span>{contact.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {contact.email}
-                            </span>
-                          </div>
-
-                          <Check
-                            className={cn(
-                              'ml-auto h-4 w-4',
-                              selectedContact?.id === contact.id
-                                ? 'opacity-100'
-                                : 'opacity-0'
-                            )}
-                          />
+                          Nenhum contato associado
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
+
+                        {allContacts?.map(contact => (
+                          <CommandItem
+                            key={contact.id}
+                            value={`${contact.name} ${contact.email}`}
+                            onSelect={() => {
+                              setValue('contactId', contact.id, {
+                                shouldValidate: true,
+                              })
+                              setOpenContactSelect(false)
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span>{contact.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {contact.email}
+                              </span>
+                            </div>
+
+                            <Check
+                              className={cn(
+                                'ml-auto h-4 w-4',
+                                selectedContact?.id === contact.id
+                                  ? 'opacity-100'
+                                  : 'opacity-0'
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  )}
                 </PopoverContent>
               </Popover>
 
@@ -326,13 +378,15 @@ export default function LeadDialogForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={loading}
+                disabled={isSubmitting}
               >
                 Cancelar
               </Button>
 
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {leadId ? 'Salvar' : 'Criar Lead'}
               </Button>
             </DialogFooter>

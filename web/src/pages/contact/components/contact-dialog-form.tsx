@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getApiErrorMessage } from '@/lib/get-api-error-message'
 import { queryClient } from '@/lib/react-query'
 import type { Contact } from '@/utils/types'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -36,25 +37,25 @@ export default function ContactFormDialog({
   contactId,
 }: ContactFormDialogProps) {
   const [formError, setFormError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
 
   const toastSuccessMessage = contactId
     ? 'Contato atualizado com sucesso!'
     : 'Contato criado com sucesso!'
 
-  const { mutateAsync: createContactMutation } = useMutation({
+  const createContactMutation = useMutation({
     mutationFn: createContact,
     onSuccess: () => {
       toast.success(toastSuccessMessage)
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      queryClient.invalidateQueries({ queryKey: ['all-contacts'] })
       onOpenChange(false)
     },
     onError: err => {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar')
+      setFormError(getApiErrorMessage(err, 'Erro ao salvar contato.'))
     },
   })
 
-  const { mutateAsync: updateContactMutation } = useMutation({
+  const updateContactMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
       if (!contactId) {
         throw new Error('Contato não encontrado')
@@ -64,14 +65,21 @@ export default function ContactFormDialog({
     onSuccess: () => {
       toast.success(toastSuccessMessage)
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      queryClient.invalidateQueries({ queryKey: ['all-contacts'] })
       onOpenChange(false)
     },
     onError: err => {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar')
+      setFormError(getApiErrorMessage(err, 'Erro ao salvar contato.'))
     },
   })
 
-  const { data: contactData, isLoading: isContactLoading } = useQuery<Contact>({
+  const {
+    data: contactData,
+    isLoading: isContactLoading,
+    isError: isContactError,
+    error: contactError,
+    refetch: refetchContact,
+  } = useQuery<Contact>({
     queryKey: ['contact', contactId],
     queryFn: () => findContactById({ id: contactId! }),
     enabled: !!contactId && open,
@@ -109,23 +117,21 @@ export default function ContactFormDialog({
   }, [contactData, open, reset])
 
   const onSubmit = async (data: ContactFormData) => {
-    setLoading(true)
     setFormError(null)
 
     try {
       if (contactId) {
-        await updateContactMutation(data)
+        await updateContactMutation.mutateAsync(data)
       } else {
-        await createContactMutation(data)
+        await createContactMutation.mutateAsync(data)
       }
-
-      onOpenChange(false)
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar')
-    } finally {
-      setLoading(false)
+    } catch {
+      // Error state is set by mutation onError handlers.
     }
   }
+
+  const isSubmitting =
+    createContactMutation.isPending || updateContactMutation.isPending
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -142,7 +148,25 @@ export default function ContactFormDialog({
         </DialogHeader>
 
         {isContactLoading && <ContactFormSkeleton />}
-        {!isContactLoading && (
+        {isContactError && (
+          <div className="space-y-3 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            <p>
+              {getApiErrorMessage(
+                contactError,
+                'Não foi possível carregar os dados do contato.'
+              )}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => refetchContact()}
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+        {!isContactLoading && !isContactError && (
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="flex flex-col gap-4"
@@ -154,6 +178,7 @@ export default function ContactFormDialog({
                 placeholder="Ex: Ana Silva"
                 {...register('name')}
                 aria-invalid={!!errors.name}
+                disabled={isSubmitting}
               />
               {errors.name && (
                 <p className="text-xs text-destructive">
@@ -170,6 +195,7 @@ export default function ContactFormDialog({
                 placeholder="Ex: ana@email.com"
                 {...register('email')}
                 aria-invalid={!!errors.email}
+                disabled={isSubmitting}
               />
               {errors.email && (
                 <p className="text-xs text-destructive">
@@ -185,6 +211,7 @@ export default function ContactFormDialog({
                 placeholder="Ex: (11) 98765-4321"
                 {...register('phone')}
                 aria-invalid={!!errors.phone}
+                disabled={isSubmitting}
               />
               {errors.phone && (
                 <p className="text-xs text-destructive">
@@ -204,13 +231,15 @@ export default function ContactFormDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={loading}
+                disabled={isSubmitting}
               >
                 Cancelar
               </Button>
 
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {contactId ? 'Salvar' : 'Criar Contato'}
               </Button>
             </DialogFooter>

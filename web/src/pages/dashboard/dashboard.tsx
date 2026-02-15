@@ -1,4 +1,6 @@
 import { getDashboard } from '@/api/dashboard/get-dashboard'
+import { Button } from '@/components/ui/button'
+import { getApiErrorMessage } from '@/lib/get-api-error-message'
 import { useQuery } from '@tanstack/react-query'
 import { LayoutDashboard, Target, TrendingUp, Users } from 'lucide-react'
 import {
@@ -9,7 +11,14 @@ import { DashboardStatusDistribuition } from './components/dashboard-status-dist
 import { DashboardRecentLeads } from './components/dashboard-recent-leads'
 
 export default function Dashboard() {
-  const { data: dasboardData, isLoading: isLoadingDashboard } = useQuery({
+  const {
+    data: dasboardData,
+    isLoading: isLoadingDashboard,
+    isFetching: isFetchingDashboard,
+    isError: isDashboardError,
+    error: dashboardError,
+    refetch: refetchDashboard,
+  } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => getDashboard(),
     staleTime: 0,
@@ -56,6 +65,26 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {isDashboardError && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          <p>
+            {getApiErrorMessage(
+              dashboardError,
+              'Não foi possível carregar os dados do dashboard.'
+            )}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3"
+            onClick={() => refetchDashboard()}
+            disabled={isFetchingDashboard}
+          >
+            {isFetchingDashboard ? 'Tentando novamente...' : 'Tentar novamente'}
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {DASHBOARD_CARDS.map(card => (

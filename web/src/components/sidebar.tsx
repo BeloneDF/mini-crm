@@ -1,10 +1,19 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, Target, Menu, X, LogOut } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Target,
+  Menu,
+  X,
+  LogOut,
+  Loader2,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import type { GetProfileResponse } from '@/api/auth/get-profile'
 import { useMutation } from '@tanstack/react-query'
 import { signOut } from '@/api/auth/sign-out'
+import { getApiErrorMessage } from '@/lib/get-api-error-message'
 import { toast } from 'sonner'
 
 const navItems = [
@@ -18,14 +27,14 @@ export function SideBar({ user }: { user: GetProfileResponse }) {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const { mutate: logout } = useMutation({
+  const { mutate: logout, isPending: isLoggingOut } = useMutation({
     mutationFn: signOut,
     onSuccess: () => {
       toast.success('Até logo!')
       navigate('/sign-in')
     },
-    onError: () => {
-      toast.error('Erro ao sair. Tente novamente.')
+    onError: error => {
+      toast.error(getApiErrorMessage(error, 'Erro ao sair. Tente novamente.'))
     },
   })
 
@@ -116,10 +125,16 @@ export function SideBar({ user }: { user: GetProfileResponse }) {
         <div className="px-3 py-4">
           <button
             onClick={() => logout()}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            disabled={isLoggingOut}
+            aria-busy={isLoggingOut}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-60"
           >
-            <LogOut className="h-5 w-5" />
-            Sair
+            {isLoggingOut ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <LogOut className="h-5 w-5" />
+            )}
+            {isLoggingOut ? 'Saindo...' : 'Sair'}
           </button>
         </div>
 

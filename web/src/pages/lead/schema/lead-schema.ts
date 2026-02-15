@@ -11,13 +11,12 @@ export const leadStatusValues = [
 export type LeadStatus = (typeof leadStatusValues)[number]
 
 export const leadSchema = z.object({
-  name: z.string().min(2, 'Nome deve ter no minimo 2 caracteres'),
-  company: z.string().min(2, 'Empresa deve ter no minimo 2 caracteres'),
+  name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres.'),
+  company: z.string().min(2, 'Empresa deve ter no mínimo 2 caracteres.'),
   status: z.enum(leadStatusValues, {
-    message:
-      'Status deve ser um dos seguintes: novo, contactado, qualificado, convertido, perdido',
+    message: 'Selecione um status válido.',
   }),
-  contactId: z.string().min(1, ' O contato é obrigatório'),
+  contactId: z.string().min(1, 'Selecione um contato.'),
 })
 
 export type LeadFormData = z.infer<typeof leadSchema>

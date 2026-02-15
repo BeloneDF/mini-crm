@@ -1,5 +1,6 @@
 import { getLeadsByContactId } from '@/api/leads/get-leads-by-contact-id'
 import { Button } from '@/components/ui/button'
+import { getApiErrorMessage } from '@/lib/get-api-error-message'
 import {
   Sheet,
   SheetContent,
@@ -23,12 +24,14 @@ export default function ContactLeadsDrawer({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: ['contactLeads', contactId],
     queryFn: async () => getLeadsByContactId({ id: contactId }),
-    enabled: !!open,
+    enabled: open,
     staleTime: 0,
   })
+
+  const isDrawerLoading = isLoading || isFetching
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -45,9 +48,9 @@ export default function ContactLeadsDrawer({
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
-              {data?.contact?.name.charAt(0).toUpperCase()}
+              {data?.contact?.name?.charAt(0).toUpperCase() || '?'}
             </div>
-            {data?.contact?.name}
+            {isDrawerLoading ? 'Carregando...' : data?.contact?.name || 'Contato'}
           </SheetTitle>
           <SheetDescription>Leads vinculados a este contato</SheetDescription>
         </SheetHeader>
@@ -65,25 +68,43 @@ export default function ContactLeadsDrawer({
           </div>
         )}
 
-        <div className="mt-6 flex flex-col gap-3 max-h-[70dvh]  overflow-auto">
+        <div className="mt-6 max-h-[70dvh] overflow-auto flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-foreground">
-            Leads ({isLoading || isFetching ? '...' : data?.leads?.length || 0})
+            Leads ({isDrawerLoading ? '...' : data?.leads?.length || 0})
           </h3>
 
-          {isLoading ||
-            (isFetching && (
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={`skel-${i}`} className="rounded-lg border p-4">
-                    <Skeleton className="mb-2 h-4 w-32" />
-                    <Skeleton className="h-3 w-20" />
-                  </div>
-                ))}
-              </div>
-            ))}
+          {isDrawerLoading && (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={`skel-${i}`} className="rounded-lg border p-4">
+                  <Skeleton className="mb-2 h-4 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              ))}
+            </div>
+          )}
 
-          {!isLoading &&
-            !isFetching &&
+          {!isDrawerLoading && isError && (
+            <div className="space-y-3 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+              <p>
+                {getApiErrorMessage(
+                  error,
+                  'Não foi possível carregar os leads deste contato.'
+                )}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => refetch()}
+              >
+                Tentar novamente
+              </Button>
+            </div>
+          )}
+
+          {!isDrawerLoading &&
+            !isError &&
             data?.leads &&
             data.leads.length === 0 && (
               <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -91,8 +112,8 @@ export default function ContactLeadsDrawer({
               </p>
             )}
 
-          {!isLoading &&
-            !isFetching &&
+          {!isDrawerLoading &&
+            !isError &&
             data?.leads &&
             data.leads.map(lead => (
               <div key={lead.id} className="rounded-lg border bg-card p-4">
