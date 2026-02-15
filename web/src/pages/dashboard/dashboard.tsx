@@ -41,7 +41,6 @@ export default function Dashboard() {
     },
   ]
 
-  console.log(dasboardData)
   return (
     <main className="flex flex-col gap-6 p-4 md:p-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

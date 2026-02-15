@@ -59,7 +59,6 @@ export default function ContactFormDialog({
       if (!contactId) {
         throw new Error('Contato não encontrado')
       }
-      console.log('ta no updateContactMutation', data)
       return updateContact(contactId, data)
     },
     onSuccess: () => {

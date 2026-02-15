@@ -67,7 +67,6 @@ export async function seed() {
   await generateContactLeads(contacts)
 }
 
-console.log('Seeding database with initial data...')
 seed()
   .then(() => {
     console.log('Database seeding completed successfully.')

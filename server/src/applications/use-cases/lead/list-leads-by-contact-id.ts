@@ -17,10 +17,6 @@ export class FindLeadsByContactIdUseCase {
   async execute(
     request: FindLeadsByContactIdUseCaseRequest
   ): Promise<FindLeadsByContactIdUseCaseResponse | null> {
-    console.log(
-      'Executing FindLeadsByContactIdUseCase with contactId:',
-      request.contactId
-    )
     const existingContact = this.contactRepository.findContactById(
       request.contactId
     )
