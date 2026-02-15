@@ -90,6 +90,9 @@ export const LeadColumns: ColumnDef<Lead>[] = [
   },
   {
     id: 'actions',
+      header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Ações" />
+    ),
     cell: ({ row }) => {
       const contact = row.original
       const [createOpen, setCreateOpen] = useState(false)
@@ -101,7 +104,7 @@ export const LeadColumns: ColumnDef<Lead>[] = [
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-8 w-8 p-0  group-hover:opacity-100 transition-opacity"
               >
                 <span className="sr-only">Abrir menu</span>
                 <MoreHorizontal className="h-4 w-4" />
