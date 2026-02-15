@@ -1,38 +1,43 @@
 import { lazy } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 const Contact = lazy(() => import('@pages/contact/contact'))
 const Lead = lazy(() => import('@pages/lead/lead'))
-const AppLayout = lazy(() => import('@/pages/_layout/app-layout'))
-const AuthLayout = lazy(() => import('@/pages/_layout/auth-layout'))
 const SignIn = lazy(() => import('@pages/auth/sign-in/sign-in'))
-const NotFound = lazy(() => import('@/components/errors/not-found-error'))
-const Forbidden = lazy(() => import('@/components/errors/forbidden-error'))
+const SignUp = lazy(() => import('@pages/auth/sign-up/sign-up'))
 const Dashboard = lazy(() => import('@/pages/dashboard/dashboard'))
+
+import { authLoader } from './loaders/auth-loader'
+import AppLayout from '@/pages/_layout/app-layout'
+import AuthLayout from '@/pages/_layout/auth-layout'
+import NotFound from '@/components/errors/not-found-error'
+import Forbidden from '@/components/errors/forbidden-error'
 
 export const router = createBrowserRouter([
   {
+    path: '/sign-in',
+    element: <AuthLayout />,
+    children: [{ index: true, element: <SignIn /> }],
+  },
+  {
+    path: '/sign-up',
+    element: <AuthLayout />,
+    children: [{ index: true, element: <SignUp /> }],
+  },
+  {
     path: '/',
-    element: (
-      <>
-        <AppLayout />
-      </>
-    ),
+    loader: authLoader,
+    element: <AppLayout />,
     errorElement: <NotFound />,
     children: [
-      { path: 'contacts', element: <Contact /> },
-      { path: 'leads', element: <Lead /> },
+      { index: true, element: <Navigate to="dashboard" replace /> },
       { path: 'dashboard', element: <Dashboard /> },
+      { path: 'leads', element: <Lead /> },
+      { path: 'contacts', element: <Contact /> },
     ],
   },
   {
-    path: '/',
-    element: <AuthLayout />,
-    children: [{ path: '/sign-in', element: <SignIn /> }],
-  },
-
-  {
-    path: '/errors',
-    children: [{ path: '/errors/forbidden', element: <Forbidden /> }],
+    path: '/errors/forbidden',
+    element: <Forbidden />,
   },
 ])

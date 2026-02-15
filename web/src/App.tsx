@@ -9,6 +9,9 @@ import { queryClient } from './lib/react-query.ts'
 import { router } from './routes/routes.tsx'
 import './styles/global.css'
 
+import { Suspense } from 'react'
+import { MajorFallbackSkeleton } from './components/fallback/major-fallback-skeleton.tsx'
+
 export function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="crm-theme">
@@ -16,7 +19,9 @@ export function App() {
         <Helmet titleTemplate="%s | CRM" />
         <Toaster richColors />
         <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
+          <Suspense fallback={<MajorFallbackSkeleton />}>
+            <RouterProvider router={router} />
+          </Suspense>
         </QueryClientProvider>
       </HelmetProvider>
     </ThemeProvider>

@@ -1,6 +1,6 @@
 import type { AuthUseCase } from '@/applications/use-cases/auth/auth'
 import type { Context } from 'hono'
-import { setCookie } from 'hono/cookie'
+import { getCookie, setCookie } from 'hono/cookie'
 
 export class AuthController {
   constructor(private authUseCase: AuthUseCase) {}
@@ -14,7 +14,7 @@ export class AuthController {
       if (result.token) {
         setCookie(c, 'auth', result.token, {
           httpOnly: true,
-          secure: false, //* using localhost
+          secure: false, //* usando localhost
           sameSite: 'Strict',
           maxAge: 60 * 60 * 24 * 7, // 7 dias
         })
@@ -39,7 +39,9 @@ export class AuthController {
       return c.json({ error: 'Invalid token' }, 401)
     }
 
-    return c.json(user, 200)
+    const { password, id, createdAt, ...userWithoutIdAndPassword } = user
+
+    return c.json(userWithoutIdAndPassword, 200)
   }
 
   async logout(c: Context) {
@@ -55,10 +57,7 @@ export class AuthController {
   }
 
   private extractToken(c: Context) {
-    const authHeader = c.req.header('Authorization')
-    if (!authHeader) return null
-
-    const [, token] = authHeader.split(' ')
+    const token = getCookie(c, 'auth')
     return token
   }
 }

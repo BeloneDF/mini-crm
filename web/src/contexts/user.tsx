@@ -1,4 +1,4 @@
-import type { GetProfileResponse } from '@/api/get-profile'
+import type { GetProfileResponse } from '@/api/auth/get-profile'
 import { createContext } from 'react'
 
 export interface CurrentUserContextType {

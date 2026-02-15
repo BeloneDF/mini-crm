@@ -1,166 +1,135 @@
-import { signOut } from '@/api/sign-out'
-import { DashboardIcon } from '@radix-ui/react-icons'
-import { useMutation } from '@tanstack/react-query'
-import {
-  AlignCenter,
-  LogOut,
-  Package,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, Users, Target, Menu, X, LogOut } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import type { GetProfileResponse } from '@/api/auth/get-profile'
+import { useMutation } from '@tanstack/react-query'
+import { signOut } from '@/api/auth/sign-out'
 import { toast } from 'sonner'
-import { Button } from './ui/button'
 
-export function SideBar() {
+const navItems = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/leads', label: 'Leads', icon: Target },
+  { href: '/contacts', label: 'Contatos', icon: Users },
+]
+
+export function SideBar({ user }: { user: GetProfileResponse }) {
+  const { pathname } = useLocation()
   const navigate = useNavigate()
-  const location = useLocation()
-
-  const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const menuItems = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: DashboardIcon,
-      route: '/dashboard',
-    },
-    { id: 'lead', label: 'Leads', icon: AlignCenter, route: '/leads' },
-    { id: 'contact', label: 'Contatos', icon: Package, route: '/contacts' },
-  ]
-
-  const { mutate: logoutFn } = useMutation({
+  const { mutate: logout } = useMutation({
     mutationFn: signOut,
     onSuccess: () => {
+      toast.success('Até logo!')
       navigate('/sign-in')
-      toast.success('Até breve!')
+    },
+    onError: () => {
+      toast.error('Erro ao sair. Tente novamente.')
     },
   })
 
-  const sidebarWidth = collapsed ? 'w-20' : 'w-64'
-
   return (
     <>
+      <div className="flex items-center justify-between border-b border-sidebar-border bg-sidebar px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+            <Target className="h-4 w-4 text-sidebar-primary-foreground" />
+          </div>
+          <span className="text-base font-semibold text-sidebar-accent-foreground">
+            Crm - Belone
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="rounded-md p-2 text-sidebar-foreground hover:bg-sidebar-accent"
+          aria-label="Abrir menu"
+        >
+          {mobileOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
+        </button>
+      </div>
+
       {mobileOpen && (
-        <Button
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+        <div
+          className="fixed inset-0 z-40 bg-foreground/50 lg:hidden"
           onClick={() => setMobileOpen(false)}
-        ></Button>
+          onKeyDown={e => {
+            if (e.key === 'Escape') setMobileOpen(false)
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Fechar menu"
+        />
       )}
 
       <aside
-        className={`
-          fixed lg:static top-0 left-0 h-screen min-h-screen bg-sidebar
-          flex flex-col justify-between z-40 transition-all duration-300
-          ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${sidebarWidth}
-        `}
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
       >
-        <section>
-          {/* HEADER */}
-          <div className="p-6 border-b border-sidebar-border flex flex-col items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-transparent">
-                <div
-                  className="w-full h-full bg-contain bg-no-repeat bg-center"
-                  style={{ backgroundImage: "url('logo.png')" }}
-                  aria-label="logo"
-                  role="img"
-                />
-              </div>
-              {!collapsed && (
-                <div className="transition-opacity">
-                  <h1 className="text-lg font-bold text-sidebar-foreground">
-                    CRM
-                  </h1>
-                  <p className="text-xs text-zinc-300">
-                    Gerencie seus leads de forma eficiente
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="text-sidebar-foreground hover:text-white p-2 rounded-md "
-            >
-              {collapsed ? (
-                <PanelLeftOpen size={20} />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <PanelLeftClose size={20} />
-                  <span>Retrair</span>
-                </div>
-              )}
-            </button>
+        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
+            <Target className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-sidebar-accent-foreground">
+              CRM - Belone
+            </h1>
+            <p className="text-xs text-sidebar-foreground">{user.name}</p>
+          </div>
+        </div>
 
-          <nav className="p-4 space-y-2">
-            {menuItems.map(item => {
-              const Icon = item.icon
-              const isActive = location.pathname === item.route
-
+        <nav className="flex-1 px-3 py-4" aria-label="Menu principal">
+          <ul className="flex flex-col gap-1">
+            {navItems.map(item => {
+              const isActive =
+                item.href === '/'
+                  ? pathname === '/'
+                  : pathname.startsWith(item.href)
               return (
-                <Button
-                  key={item.id}
-                  onClick={() => {
-                    navigate(item.route)
-                    setMobileOpen(false)
-                  }}
-                  variant={isActive ? 'default' : 'ghost'}
-                  className={`
-                    w-full flex items-center cursor-pointer gap-3
-                    ${collapsed ? 'justify-center px-3' : 'justify-start'}
-                    ${
+                <li key={item.href}>
+                  <Link
+                    to={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                    }
-                  `}
-                >
-                  <Icon className="w-5 h-5" />
-                  {!collapsed && item.label}
-                </Button>
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                    )}
+                  >
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    {item.label}
+                  </Link>
+                </li>
               )
             })}
-          </nav>
-        </section>
+          </ul>
+        </nav>
 
-        <section className="p-4">
-          <Button
-            onClick={() => logoutFn()}
-            className="bg-sidebar-accent w-full flex gap-2 items-center cursor-pointer hover:bg-blue-950
-            justify-center"
+        <div className="px-3 py-4">
+          <button
+            onClick={() => logout()}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
-            <LogOut className="h-4 w-4" />
-            {!collapsed && <span>Sair</span>}
-          </Button>
+            <LogOut className="h-5 w-5" />
+            Sair
+          </button>
+        </div>
 
-          <div className="h-6 w-full p-4 flex items-center gap-2 justify-center">
-            {!collapsed && (
-              <>
-                <span className="text-zinc-400 text-xs">galax.ia</span>
-
-                <span
-                  className="w-5 h-5 inline-block bg-no-repeat bg-contain"
-                  style={{ backgroundImage: "url('logo_andromeda.png')" }}
-                  aria-label="logo_galax_ia"
-                  role="img"
-                />
-              </>
-            )}
-          </div>
-        </section>
+        <footer className="border-t border-sidebar-border px-6 py-4">
+          <p className="text-xs text-sidebar-foreground">Prova Tecnica</p>
+          <p className="text-xs text-sidebar-foreground/60">
+            React + TypeScript
+          </p>
+        </footer>
       </aside>
-
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed top-25 left-4 z-20 lg:hidden bg-sidebar text-white p-2 rounded-md shadow"
-      >
-        <PanelLeftOpen />
-      </button>
     </>
   )
 }

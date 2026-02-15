@@ -7,7 +7,7 @@ export interface GetProfileResponse {
 }
 
 export async function getProfile(): Promise<GetProfileResponse> {
-  const response = await api.get('/auth/check')
+  const response = await api.get('/auth/me')
 
   return response.data
 }

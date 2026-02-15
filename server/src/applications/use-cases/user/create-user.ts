@@ -1,8 +1,7 @@
 import { type CreateUserDTO } from '@/applications/dtos/create-user-dto'
-import { generateId } from '@/shared/utils/generate-id'
 import { AppError } from '@/domain/errors/app-errors'
 import type { UserRepository } from '@/domain/repositories/user-repository'
-import type { User } from '@/domain/entites/user'
+import { hash } from 'bcryptjs'
 
 export class CreateUserUseCase {
   constructor(private userRepository: UserRepository) {}
@@ -14,14 +13,10 @@ export class CreateUserUseCase {
       throw new AppError('Email already registered', 400)
     }
 
-    const user: User = {
-      id: generateId(),
-      email: data.email,
-      name: data.name,
-      password: data.password,
-      createdAt: new Date().toISOString(),
-    }
+    const hassedPassword = await hash(data.password, 10)
 
-    return this.userRepository.create(user)
+    const userWithHashedPassword = { ...data, password: hassedPassword }
+
+    return this.userRepository.create(userWithHashedPassword)
   }
 }

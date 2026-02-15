@@ -2,12 +2,19 @@ import jwt, { type Secret, type SignOptions } from 'jsonwebtoken'
 import { users, tokenBlacklist } from '../database'
 import { jwtConfig } from '@/shared/config/jwt'
 import type { AuthRepository } from '@/domain/repositories/auth-repository'
+import { compare } from 'bcryptjs'
 
 export class InMemoryAuthRepository implements AuthRepository {
   async login(email: string, password: string) {
-    const user = users.find(u => u.email === email && u.password === password)
+    const user = users.find(u => u.email === email)
 
     if (!user) {
+      throw new Error('Invalid credentials')
+    }
+
+    const passwordMatch = await compare(password, user.password)
+
+    if (!passwordMatch) {
       throw new Error('Invalid credentials')
     }
 

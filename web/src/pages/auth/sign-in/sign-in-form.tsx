@@ -1,4 +1,4 @@
-import { signIn } from '@/api/sign-in'
+import { signIn } from '@/api/auth/sign-in'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,6 +7,7 @@ import { useMutation } from '@tanstack/react-query'
 import { Loader2, Target, Eye, EyeOff } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -26,14 +27,13 @@ type LoginForm = z.infer<typeof passwordFormSchema>
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate()
 
   const { mutate: signInMutate, isPending: isSigningIn } = useMutation({
     mutationFn: signIn,
-    onMutate: () => {
-      toast.loading('Entrando...')
-    },
     onSuccess: () => {
       toast.success('Login bem-sucedido!')
+      navigate('/dashboard')
     },
     onError: (error: any) => {
       const message =
@@ -185,7 +185,8 @@ export default function SignInForm() {
           {'Nao possui uma conta? '}
           <button
             type="button"
-            className="font-semibold text-primary transition-colors hover:text-primary/80"
+            onClick={() => navigate('/sign-up')}
+            className="font-semibold text-primary"
           >
             Cadastre-se aqui
           </button>
